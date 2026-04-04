@@ -28,6 +28,7 @@ def load_from_urls(urls = List[str])->List[Document]:
     WebBaseLoader uses BeautifulSoup under the hood.
     This is the default for Phase 1 — no files to manage.
     """
+ 
     loader = WebBaseLoader(web_paths=urls, requests_per_second=2)
     docs = loader.load()
 
@@ -48,6 +49,7 @@ def chunk_documents(documents: List[Document])->List[Document]:
       blocks) over arbitrary character counts. This is especially important
       for technical docs which mix prose and code.
     """
+
     splitter = RecursiveCharacterTextSplitter(
         chunk_size = 1000,
         chunk_overlap = 200,
@@ -77,6 +79,7 @@ def get_embeddings()->HuggingFaceEmbeddings:
     good semantic understanding. In Phase 4 (fine-tuning), we'll swap this
     out for a domain-adapted version trained on our own corpus.
     """
+
     return HuggingFaceEmbeddings(
         model_name = settings.embedding_model,
         model_kwargs = {'device': settings.embedding_device},
@@ -91,6 +94,7 @@ def build_vector_store(chunks = List[Document])->Chroma:
     Embed all chunks and persist to ChromaDB.
     This is the expensive one-time operation — takes 2–5 min on CPU.
     """
+
     embeddings = get_embeddings()
     vector_store = Chroma.from_documents(
         documents=chunks,
@@ -107,6 +111,7 @@ def load_vector_store()->Chroma:
     Load an already-built ChromaDB store from disk.
     Used at server startup — fast, no re-embedding needed.
     """
+
     embeddings = get_embeddings()
     return Chroma(
         persist_directory=settings.chroma_persist_dir,

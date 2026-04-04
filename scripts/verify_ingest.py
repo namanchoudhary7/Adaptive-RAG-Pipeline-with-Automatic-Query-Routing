@@ -1,10 +1,9 @@
 """Quick smoke test — run after ingest.py to verify retrieval works."""
 import sys
 from pathlib import Path
+from backend.rag.ingestion import load_vector_store, get_doc_count
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from backend.rag.ingestion import load_vector_store, get_doc_count
 
 def main():
     count = get_doc_count()

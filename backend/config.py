@@ -1,6 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         extra="ignore",
@@ -11,7 +10,7 @@ class Settings(BaseSettings):
 
     # Ollama
     ollama_base_url: str = "http://localhost:11434"
-    ollama_model: str = "llama3.1"
+    ollama_model: str = "llama3.2:1b"
 
     # Embeddings — HuggingFace model, runs locally via sentence-transformers
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
@@ -31,7 +30,6 @@ class Settings(BaseSettings):
     # API server
     api_host: str = "0.0.0.0"
     api_port: int = 8000
-
 
 # Single instance imported everywhere
 settings = Settings()

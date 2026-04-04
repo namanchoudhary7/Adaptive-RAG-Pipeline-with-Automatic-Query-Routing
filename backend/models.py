@@ -6,20 +6,17 @@ from pydantic import BaseModel, Field
 
 class RetrievalStrategy(str, Enum):
     SEMANTIC = "semantic"
-    KEYWORD = "keyword"
+    KEYWORD = "bm25"
     HYBRID = "hybrid"
-
 
 class GradeResult(str, Enum):
     SUFFICIENT = "sufficient"
     INSUFFICIENT = "insufficient"
 
-
 class ConfidenceLevel(str, Enum):
     HIGH = "high"
     MEDIUM = "medium"
     LOW = "low"
-
 
 class QueryRequest(BaseModel):
     query: str = Field(
@@ -30,12 +27,10 @@ class QueryRequest(BaseModel):
         examples=["How do I add middleware in FastAPI?"],
     )
 
-
 class SourceDocument(BaseModel):
     content: str = Field(description="The retrieved chunk text")
     source: str = Field(description="URL or file path of the source document")
     relevance_score: float = Field(ge=0.0, le=1.0)
-
 
 class QueryResponse(BaseModel):
     query: str
@@ -45,7 +40,6 @@ class QueryResponse(BaseModel):
     relevance_grade: GradeResult
     retry_count: int = Field(ge=0, description="Number of self-correction loops taken")
     confidence: ConfidenceLevel
-
 
 class HealthResponse(BaseModel):
     status: str

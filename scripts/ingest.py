@@ -14,9 +14,6 @@ What it does:
 import logging
 import sys
 from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
 from backend.config import settings
 from backend.rag.ingestion import (
     load_from_directory,
@@ -24,6 +21,8 @@ from backend.rag.ingestion import (
     build_vector_store,
     chunk_documents,
 )
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 logging.basicConfig(
     level=logging.INFO,
