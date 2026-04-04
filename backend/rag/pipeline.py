@@ -68,7 +68,7 @@ QUERY_REWRITE_PROMPT = ChatPromptTemplate.from_messages([
     ("human", "Original question: {question}\n\nRewritten question:"),
 ])
 
-# Miain answer generation prompt
+# Main answer generation prompt
 RAG_GENERATION_PROMPT = ChatPromptTemplate([
     ("system",
     """You are a helpful technical documentation assistant. Answer the user's 
@@ -191,10 +191,10 @@ class AdaptiveRAGPipeline:
             strategy_used = strategy.value
 
             # --- Step 2: Retrieve ---
-            retrievel_result = self._retriever.retrieve(current_query, strategy=strategy.value)
-            
-            if not retrievel_result:
-                logger.info("Empty retrievel result - skipping grade, retrying")
+            retrieval_result = self._retriever.retrieve(current_query, strategy=strategy.value)
+
+            if not retrieval_result.chunks:
+                logger.info("Empty retrieval result - skipping grade, retrying")
                 current_query = self._rewrite_query(current_query)
                 retry_count += 1
                 continue

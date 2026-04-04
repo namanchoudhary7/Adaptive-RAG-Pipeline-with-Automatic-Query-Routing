@@ -200,7 +200,7 @@ class AdaptiveRetriever:
         semantic_list = [(doc, score) for doc, score in semantic_results]
         bm25_list = list(bm25_results)
 
-        return reciprocal_rank_fusion(ranked_lists=[semantic_results, bm25_results], top_k=top_k)
+        return reciprocal_rank_fusion(ranked_lists=[semantic_list, bm25_list], top_k=top_k)
     
     def retrieve(self, query:str, strategy:str, top_k:int = None)->RetrievedResult:
         """

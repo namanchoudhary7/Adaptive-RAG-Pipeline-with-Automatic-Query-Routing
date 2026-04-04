@@ -1,4 +1,5 @@
 import logging
+import chromadb
 from typing import List
 from langchain_classic.schema import Document
 from langchain_classic.text_splitter import RecursiveCharacterTextSplitter
@@ -122,7 +123,8 @@ def load_vector_store()->Chroma:
 def get_doc_count()->int:
     """Quick health check — how many chunks are indexed?"""
     try:
-        store = load_vector_store()
-        return store._collection.count()
+        client = chromadb.PersistentClient(path=settings.chroma_persist_dir)
+        collection = client.get_collection(settings.chroma_collection_name)
+        return collection.count()
     except Exception:
         return 0

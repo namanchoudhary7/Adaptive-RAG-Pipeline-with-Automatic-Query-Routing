@@ -1,18 +1,26 @@
-# Python-generated files
+# --- Python & Build Artifacts ---
 __pycache__/
 *.py[oc]
 build/
 dist/
 wheels/
-*.egg-info
+*.egg-info/
+.pytest_cache/
 
-# Virtual environments
-.venv
+# --- Environments ---
+.venv/
+env/
+.python-version
 
+# --- Secrets (CRITICAL) ---
 .env
+
+# --- Local Databases & Data ---
 chroma_db/
 data/
-__pycache__/
-*.pyc
-.venv/
-.python-version
+
+# --- OS & IDE Files (Keeps GitHub clean) ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

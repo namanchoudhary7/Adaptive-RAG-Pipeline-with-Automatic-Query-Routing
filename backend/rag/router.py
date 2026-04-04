@@ -39,10 +39,10 @@ def _load_classifier():
     First call takes ~3s to download/load; subsequent calls are instant.
     """
 
-    logger.info("Lodding zero-shot clasifier (facebook/bart-large-mnli)...")   
+    logger.info("Loading zero-shot clasifier...")   
     clf = pipeline(
         task='zero-shot-classification',
-        model='facebook/bart-large-mnli',
+        model='cross-encoder/nli-deberta-v3-small',
         device=-1              # CPU; change to 0 if you have a GPU
     )
     logger.info("Zero-shot classifier loaded")
