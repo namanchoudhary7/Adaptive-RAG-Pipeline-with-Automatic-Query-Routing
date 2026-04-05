@@ -183,7 +183,7 @@ class AdaptiveRAGPipeline:
         retry_count        = 0
         grade              = GradeResult.INSUFFICIENT
         strategy_used      = RetrievalStrategy.HYBRID
-        retrievel_result : Optional[RetrievedResult] = None
+        retrieval_result : Optional[RetrievedResult] = None
 
         while retry_count<=settings.max_retry_loops:
             # --- Step 1: Route ---
@@ -200,7 +200,7 @@ class AdaptiveRAGPipeline:
                 continue
 
             # --- Step 3: Grade ---
-            context = _format_context(retrievel_result)
+            context = _format_context(retrieval_result)
             grade = self._grade_context(question=current_query, context=context)
 
             if grade == GradeResult.SUFFICIENT:
@@ -216,13 +216,13 @@ class AdaptiveRAGPipeline:
         
          # --- Step 4: Generate (always runs, even after exhausted retries) ---
         
-        context = _format_context(retrievel_result)
+        context = _format_context(retrieval_result)
         answer: str = self._generator_chain.invoke({
             "context": context,
             "question": current_query
         })
 
-        top_score = retrievel_result.chunks[0].score if retrievel_result.chunks else 0.0
+        top_score = retrieval_result.chunks[0].score if retrieval_result.chunks else 0.0
 
         return QueryResponse(
             query=current_query,
@@ -230,6 +230,6 @@ class AdaptiveRAGPipeline:
             retrieval_strategy=strategy_used,
             relevance_grade=grade,
             retry_count=retry_count,
-            sources= _extract_sources(retrievel_result),
+            sources= _extract_sources(retrieval_result),
             confidence=_score_confidence(grade=grade, retry_count=retry_count, top_score=top_score),
         )

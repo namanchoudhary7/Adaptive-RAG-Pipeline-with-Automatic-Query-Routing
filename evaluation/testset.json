@@ -1,0 +1,32 @@
+[
+  {
+    "question": "What are the main concepts that should be kept in mind when deploying a FastAPI application?",
+    "ground_truth": "The passage does not explicitly state what the \"main concepts\" are. It only mentions that more details will be shown in the next sections, but it doesn't provide any information about these concepts.",
+    "source_chunk": ". You could deploy a server yourself using a combination of tools, you could use a cloud service that does part of the work for you, or other possible options. For example, we, the team behind FastAPI, built FastAPI Cloud, to make deploying FastAPI apps to the cloud as streamlined as possible, with the same developer experience of working with FastAPI. I will show you some of the main concepts you should probably keep in mind when deploying a FastAPI application (although most of it applies to any other type of web application). You will see more details to keep in mind and some of the techniques to do it in the next sections. \u2728 Back to top Previous Editor Support Next About FastAPI versions The FastAPI trademark is owned by @tiangolo and is registered in the US and across other regions Made with Material for MkDocs",
+    "source_url": "https://fastapi.tiangolo.com/deployment/"
+  },
+  {
+    "question": "What is typically handled at the cluster level when working with distributed container management systems like Kubernetes?",
+    "ground_truth": "Replication and load balancing for incoming requests.",
+    "source_chunk": ". But when working with containers in most cases that functionality is included by default. \u2728 Replication - Number of Processes\u00b6 If you have a cluster of machines with Kubernetes, Docker Swarm Mode, Nomad, or another similar complex system to manage distributed containers on multiple machines, then you will probably want to handle replication at the cluster level instead of using a process manager (like Uvicorn with workers) in each container. One of those distributed container management systems like Kubernetes normally has some integrated way of handling replication of containers while still supporting load balancing for the incoming requests. All at the cluster level. In those cases, you would probably want to build a Docker image from scratch as explained above, installing your dependencies, and running a single Uvicorn process instead of using multiple Uvicorn workers. Load Balancer\u00b6 When using containers, you would normally have some component listening on the main port",
+    "source_url": "https://fastapi.tiangolo.com/deployment/docker/"
+  },
+  {
+    "question": "What is required for high performance serving of a FastAPI application?",
+    "ground_truth": "uvloop (part of uvicorn[standard]) and uvicorn itself.",
+    "source_chunk": ". python-multipart - Required if you want to support form \"parsing\", with request.form(). Used by FastAPI: uvicorn - for the server that loads and serves your application. This includes uvicorn[standard], which includes some dependencies (e.g. uvloop) needed for high performance serving. fastapi-cli[standard] - to provide the fastapi command. This includes fastapi-cloud-cli, which allows you to deploy your FastAPI application to FastAPI Cloud. Without standard Dependencies\u00b6 If you don't want to include the standard optional dependencies, you can install with pip install fastapi instead of pip install \"fastapi[standard]\". Without fastapi-cloud-cli\u00b6 If you want to install FastAPI with the standard dependencies but without the fastapi-cloud-cli, you can install with pip install \"fastapi[standard-no-fastapi-cloud-cli]\". Additional Optional Dependencies\u00b6 There are some additional dependencies you might want to install",
+    "source_url": "https://fastapi.tiangolo.com/"
+  },
+  {
+    "question": "What is the primary difference between using Separate OpenAPI Schemas for Input and Output in a FastAPI application?",
+    "ground_truth": "The passage does not provide information on the specific differences or benefits of using Separate OpenAPI Schemas for Input and Output. However, it mentions that this option is available as part of Customizing OpenAPI.",
+    "source_chunk": "Custom Request and APIRoute class Conditional OpenAPI Extending OpenAPI Separate OpenAPI Schemas for Input and Output or Not Custom Docs UI Static Assets (Self-Hosting) Configure Swagger UI Testing a Database Use Old 403 Authentication Error Status Codes Reference Reference FastAPI class Request Parameters Status Codes UploadFile class Exceptions - HTTPException and WebSocketException Dependencies - Depends() and Security() APIRouter class Background Tasks - BackgroundTasks Request class WebSockets HTTPConnection class Response class Custom Response Classes - File, HTML, Redirect, Streaming, etc",
+    "source_url": "https://fastapi.tiangolo.com/deployment/docker/"
+  },
+  {
+    "question": "What types of additional responses can be defined in an OpenAPI response?",
+    "ground_truth": "HTML, Stream, File, others.",
+    "source_chunk": "Debugging Advanced User Guide Advanced User Guide Stream Data Path Operation Advanced Configuration Additional Status Codes Return a Response Directly Custom Response - HTML, Stream, File, others Additional Responses in OpenAPI Response Cookies Response Headers Response - Change Status Code Advanced Dependencies Advanced Security Advanced Security OAuth2 scopes HTTP Basic Auth Using the Request Directly Using Dataclasses Advanced Middleware Sub Applications - Mounts Behind a Proxy Templates WebSockets Lifespan Events Testing WebSockets Testing Events: lifespan and startup - shutdown Testing Dependencies with Overrides Async Tests Settings and Environment Variables OpenAPI Callbacks OpenAPI Webhooks Including WSGI - Flask, Django, others Generating SDKs Advanced Python Types JSON with Bytes as Base64 Strict Content-Type Checking Vibe Coding FastAPI CLI Editor Support Deployment Deployment About FastAPI versions FastAPI Cloud About HTTPS Run a Server Manually Deployments Concepts Deploy",
+    "source_url": "https://fastapi.tiangolo.com/"
+  }
+]
