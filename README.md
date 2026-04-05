@@ -17,6 +17,38 @@ demonstrating the self-correction loop working as designed.
 
 (architecture.png)
 
+adaptive-rag/
+├── .env
+├── .gitignore
+├── pyproject.toml
+│
+├── backend/
+│   ├── config.py
+│   ├── main.py           ← FastAPI server
+│   ├── models.py
+│   └── rag/
+│       ├── ingestion.py  ← document loading + ChromaDB
+│       ├── retrievers.py ← semantic + BM25 + RRF
+│       ├── router.py     ← zero-shot intent classifier
+│       └── pipeline.py   ← full RAG loop with self-correction
+│
+├── evaluation/
+│   ├── testset.py        ← synthetic Q&A generation
+│   ├── evaluator.py      ← RAGAS runner
+│   ├── report.py         ← markdown report generator
+│   ├── testset.json      ← generated, commit this
+│   └── EVAL_REPORT.md    ← generated, commit this ← the key artifact
+│
+├── frontend/
+│   └── app.py            ← Streamlit UI
+│
+└── scripts/
+    ├── ingest.py
+    ├── verify_ingest.py
+    ├── test_pipeline.py
+    ├── test_api.py
+    └── run_eval.py
+
 ## Running the full stack
 ```bash
 # 1. Ingest docs (once)
