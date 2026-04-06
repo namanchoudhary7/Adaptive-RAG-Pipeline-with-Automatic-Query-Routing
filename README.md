@@ -51,8 +51,8 @@ adaptive-rag/
 
 ## Running the full stack
 ```bash
-# 1. Ingest docs (once)
-uv run python -m scripts.ingest
+# 1. setup (once)
+uv run python -m scripts.setup
 
 # 2. Start API
 uv run uvicorn backend.main:app --reload
@@ -62,4 +62,13 @@ uv run streamlit run frontend/app.py
 
 # 4. Run evaluation
 uv run python -m scripts.run_eval
+
+# Full run — generates testset + evaluates + writes report (~15–20 min on CPU)
+uv run python -m scripts.run_eval
+
+# Faster smoke test with fewer questions
+uv run python -m scripts.run_eval --n 5
+
+# If you've already generated the testset and just want to re-evaluate
+uv run python -m scripts.run_eval --skip-gen
 ```

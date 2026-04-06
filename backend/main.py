@@ -10,9 +10,9 @@ Run with:
     uv run uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 """
 
-import logging, time
+import logging, time, os
 from contextlib import asynccontextmanager
-
+import asyncio
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
@@ -49,6 +49,8 @@ async def lifespan(app: FastAPI):
     silently serving broken responses.
     """
     global _pipeline
+
+    logger.info(f"DEBUG: System Env OLLAMA_MODEL = {os.environ.get('OLLAMA_MODEL')}")
 
     logger.info("Starting Adaptive RAG API...")
     logger.info(f"  Ollama model  : {settings.ollama_model}")
@@ -129,8 +131,12 @@ async def health():
     Returns 200 if the pipeline is initialised and ChromaDB has documents.
     Returns 503 if the pipeline failed to start.
     """
-    doc_count = get_doc_count()
-    pipeline = get_pipeline()  # raises 503 if not ready
+    # Run get_doc_count and get_pipeline concurrently
+    # Note: Wrap get_doc_count in run_in_executor if it becomes a heavy sync call
+    doc_count_task = asyncio.to_thread(get_doc_count)
+    pipeline_task = asyncio.to_thread(get_pipeline)
+    
+    doc_count, pipeline = await asyncio.gather(doc_count_task, pipeline_task)
 
     return HealthResponse(
         status="ok",

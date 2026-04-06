@@ -8,10 +8,38 @@ Run this immediately after cloning the repository:
 import os
 import shutil
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
+
+# --- Force online mode before any AI libraries are imported ---
+os.environ["HF_HUB_OFFLINE"] = "0"
+os.environ["TRANSFORMERS_OFFLINE"] = "0"
+
 from transformers import pipeline
 from langchain_huggingface import HuggingFaceEmbeddings
 
-os.environ["HF_HUB_OFFLINE"] = "0"
+def download_router():
+    """Download the Zero-Shot Router Model (DeBERTa)."""
+    print("📦 Downloading Router Model (DeBERTa)...")
+    try:
+        pipeline(
+            task='zero-shot-classification',
+            model='cross-encoder/nli-deberta-v3-small'
+        )
+        print("✅ Router model cached successfully")
+    except Exception as e:
+        print(f"❌ Failed to download router model: {e}")
+
+def download_embeddings():
+    """Download the Embedding Model (MiniLM)."""
+    print("📦 Downloading Embedding Model (MiniLM)...")
+    try:
+        HuggingFaceEmbeddings(
+            model_name="sentence-transformers/all-MiniLM-L6-v2",
+            model_kwargs={'device': 'cpu'}
+        )
+        print("✅ Embedding model cached successfully")
+    except Exception as e:
+        print(f"❌ Failed to download embedding model: {e}")
 
 def main():
     print("\n" + "="*50)
@@ -28,7 +56,6 @@ def main():
             print("✅ Created .env file from .env.example")
             print("⚠️  ACTION REQUIRED: Open .env and add your GROQ_API_KEY!")
         else:
-            # Fallback if they didn't make an .env.example
             with open(env_path, "w") as f:
                 f.write("HF_HUB_OFFLINE=0\nGROQ_API_KEY=your_api_key_here\n")
             print("✅ Created a fresh .env file")
@@ -36,32 +63,17 @@ def main():
     else:
         print("✅ .env file already exists")
 
-    # 2. Download Zero-Shot Router Model
-    print("\n📦 Downloading Router Model (DeBERTa)...")
-    try:
-        pipeline(
-            task='zero-shot-classification',
-            model='cross-encoder/nli-deberta-v3-small'
-        )
-        print("✅ Router model cached successfully")
-    except Exception as e:
-        print(f"❌ Failed to download router model: {e}")
-
-    # 3. Download Embedding Model
-    print("\n📦 Downloading Embedding Model (MiniLM)...")
-    try:
-        HuggingFaceEmbeddings(
-            model_name="sentence-transformers/all-MiniLM-L6-v2",
-            model_kwargs={'device': 'cpu'}
-        )
-        print("✅ Embedding model cached successfully")
-    except Exception as e:
-        print(f"❌ Failed to download embedding model: {e}")
+    # 2. & 3. Download Models in Parallel
+    # We use a ThreadPool to run both independent network requests at once
+    print("\n⏳ Pre-fetching models in parallel...")
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        executor.submit(download_router)
+        executor.submit(download_embeddings)
 
     # 4. Run Ingestion (Build ChromaDB)
+    # This remains sequential as it depends on the models being ready
     print("\n📚 Building Vector Database...")
     try:
-        # Import dynamically so it uses the models we just downloaded
         from scripts import ingest
         ingest.main()
     except Exception as e:

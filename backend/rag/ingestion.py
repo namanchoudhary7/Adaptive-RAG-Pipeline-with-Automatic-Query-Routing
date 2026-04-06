@@ -7,6 +7,8 @@ from langchain_chroma import Chroma
 from langchain_community.document_loaders import WebBaseLoader, DirectoryLoader, UnstructuredMarkdownLoader
 from langchain_huggingface import HuggingFaceEmbeddings
 from backend.config import settings
+from concurrent.futures import ThreadPoolExecutor
+from bs4 import SoupStrainer
 
 logger = logging.getLogger(__name__)
 
@@ -23,20 +25,30 @@ def load_from_directory(docs_dir:str)->List[Document]:
     logger.info(f'Loaded {len(docs)} documents from {docs_dir}')
     return docs
 
-def load_from_urls(urls = List[str])->List[Document]:
+def load_from_urls(urls: List[str]) -> List[Document]:
     """
-    Scrape documentation pages directly from the web.
-    WebBaseLoader uses BeautifulSoup under the hood.
-    This is the default for Phase 1 — no files to manage.
+    Scrape documentation pages directly from the web in parallel.
+    We use SoupStrainer to extract ONLY the main article content.
     """
- 
-    loader = WebBaseLoader(web_paths=urls, requests_per_second=2)
-    docs = loader.load()
+    def fetch_one(url):
+        # We create a new loader per URL for thread safety
+        loader = WebBaseLoader(
+            web_paths=[url],
+            bs_kwargs=dict(parse_only=SoupStrainer("article")) # <-- RESTORED HTML FILTER
+        )
+        return loader.load()[0]
 
+    logger.info(f"Scraping {len(urls)} URLs in parallel...")
+    
+    # We use 5 workers to be respectful to the host while staying fast
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        docs = list(executor.map(fetch_one, urls))
+
+    # Clean whitespace exactly as you did before
     for doc in docs:
         doc.page_content = " ".join(doc.page_content.split())
 
-    logger.info(f'Loaded {len(docs)} documents from {len(urls)} URLs')
+    logger.info(f'Loaded {len(docs)} documents successfully')
     return docs
 
 def chunk_documents(documents: List[Document])->List[Document]:
@@ -52,7 +64,7 @@ def chunk_documents(documents: List[Document])->List[Document]:
     """
 
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size = 1000,
+        chunk_size = 1200,
         chunk_overlap = 200,
         separators=[
             '\n\n',

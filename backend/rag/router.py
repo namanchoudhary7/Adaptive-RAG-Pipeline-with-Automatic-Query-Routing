@@ -5,7 +5,7 @@ The router answers one question: given this query, which retrieval
 strategy will most likely return useful context?
 
 Classification approach:
-We use a zero-shot HuggingFace classifier (facebook/bart-large-mnli)
+We use a zero-shot HuggingFace classifier cross-encoder/nli-deberta-v3-small
 with three candidate labels. Zero-shot means no fine-tuning needed —
 the model uses natural language inference to score each label.
 
@@ -59,7 +59,7 @@ class QueryRouter:
     would serve it better.
     """
 
-    CONFIDENCE_THRESHOLD = 0.3
+    CONFIDENCE_THRESHOLD = 0.55
     def __init__(self)->None:
         # Eagerly load the classifier at construction time so the first
         # user query doesn't pay the startup penalty

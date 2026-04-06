@@ -9,6 +9,7 @@ This gives us an unbiased eval set — questions are grounded in the
 actual corpus, not in what we assume the corpus contains.
 """
 
+from concurrent.futures import ThreadPoolExecutor
 import json
 import logging
 import random
@@ -29,22 +30,31 @@ TESTSET_PATH = Path("evaluation/testset.json")
 
 QUESTION_GEN_PROMPT = ChatPromptTemplate.from_messages([
     ("system",
-     "You are building an evaluation dataset for a RAG system. "
-     "Given a passage of technical documentation, generate ONE specific, "
-     "self-contained question that:\n"
-     "  - Can be answered using ONLY the information in the passage\n"
-     "  - Is the kind of question a developer would actually ask\n"
-     "  - Is not trivially answered by a single word\n\n"
-     "Output ONLY the question — no preamble, no numbering, no explanation."),
+     """You are an expert technical instructor building an evaluation dataset. 
+     Given a passage of technical documentation, extract ONE specific, realistic question that a developer would ask.
+
+     CRITICAL RULES:
+     1. NO META-REFERENCES: Never use phrases like "According to the passage", "In the provided text", or "As mentioned". The question must sound like a user asking a system.
+     2. STANDALONE CONTEXT: The question must make sense entirely on its own. Do not use ambiguous pronouns like "What does IT do?"
+     3. NO TRIVIA: Do not ask questions that can be answered with a single word (e.g., "Yes/No"). Ask "How", "Why", or "What is the purpose of..."
+     
+     Output ONLY the question text. No preamble, no numbering, no explanation."""
+    ),
     ("human", "Passage:\n{passage}\n\nQuestion:"),
 ])
 
 ANSWER_GEN_PROMPT = ChatPromptTemplate.from_messages([
     ("system",
-     "You are a technical documentation assistant. Answer the question "
-     "using ONLY the information in the provided passage. Be concise and precise. "
-     "Output ONLY the answer — no preamble."),
-    ("human", "Passage:\n{passage}\n\nQuestion: {question}\n\nAnswer:"),
+     """You are generating the definitive "Ground Truth" answer for a RAG evaluation dataset.
+     
+     CRITICAL RULES:
+     1. STRICT GROUNDING: You must answer the question using EXACTLY and ONLY the information in the provided passage. 
+     2. NO HALLUCINATION: Do not add external knowledge, general programming advice, or assumptions.
+     3. BE CONCISE: Get straight to the point.
+     
+     Output ONLY the answer. No preamble, no explanation of your reasoning."""
+    ),
+    ("human", "Passage:\n{passage}\n\nQuestion: {question}\n\nGround Truth Answer:"),
 ])
 
 @dataclass
@@ -97,30 +107,29 @@ class TestSetGenerator:
         sampled = random.sample(all_chunks, n)
         test_cases: List[TestCase] = []
 
-        for i, (chunk_text, meta) in enumerate(sampled, 1):
-            logger.info(f"Generating test case {i}/{n}...")
+        def generate_single_case(chunk_data):
+            chunk_text, meta = chunk_data
             try:
-                question = self._question_chain.invoke(
-                    {"passage": chunk_text}
-                ).strip()
-
-                ground_truth = self._answer_chain.invoke(
-                    {"passage": chunk_text, "question": question}
-                ).strip()
-
-                test_cases.append(TestCase(
+                question = self._question_chain.invoke({"passage": chunk_text}).strip()
+                ground_truth = self._answer_chain.invoke({"passage": chunk_text, "question": question}).strip()
+                return TestCase(
                     question=question,
                     ground_truth=ground_truth,
                     source_chunk=chunk_text,
                     source_url=meta.get("source", "unknown"),
-                ))
-
+                )
             except Exception as e:
-                logger.warning(f"Failed to generate test case {i}: {e}")
-                continue
+                logger.warning(f"Failed to generate test case: {e}")
+                return None
 
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            test_cases = list(executor.map(generate_single_case, sampled))
+
+        # Remove failed generations
+        test_cases = [tc for tc in test_cases if tc is not None]
         logger.info(f"Generated {len(test_cases)} test cases")
         return test_cases
+
     
 def save_testset(test_cases: List[TestCase], path: Path = TESTSET_PATH) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)

@@ -10,10 +10,10 @@ class Settings(BaseSettings):
 
     # Ollama
     ollama_base_url: str = "http://localhost:11434"
-    ollama_model: str = "llama3.2:1b"
+    ollama_model: str = "llama3:8b"
 
     # Embeddings — HuggingFace model, runs locally via sentence-transformers
-    embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
+    embedding_model: str = "BAAI/bge-small-en-v1.5"
     embedding_device: str = "cpu"
 
     # ChromaDB — persisted to disk so you only ingest once
@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     docs_dir: str = "./data/docs"
 
     # Retrieval behaviour
-    top_k: int = 5
+    top_k: int = 10
     max_retry_loops: int = 2
 
     # API server

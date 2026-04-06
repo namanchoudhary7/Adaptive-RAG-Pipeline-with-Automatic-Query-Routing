@@ -12,7 +12,8 @@ faithfulness. We configure it to use our local Ollama model so the
 entire evaluation runs offline with no API costs.
 """
 
-import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import logging, math
 from dataclasses import dataclass, field
 from typing import List
 
@@ -66,13 +67,21 @@ class EvalSummary:
     def compute_means(self) -> None:
         if not self.results:
             return
-        n = len(self.results)
-        self.mean_faithfulness       = round(sum(r.faithfulness       for r in self.results) / n, 4)
-        self.mean_answer_relevancy   = round(sum(r.answer_relevancy   for r in self.results) / n, 4)
-        self.mean_context_precision  = round(sum(r.context_precision  for r in self.results) / n, 4)
-        self.mean_context_recall     = round(sum(r.context_recall     for r in self.results) / n, 4)
+        
+        # Filter out NaN values for each metric
+        valid_faith = [r.faithfulness for r in self.results if not math.isnan(r.faithfulness)]
+        valid_rel = [r.answer_relevancy for r in self.results if not math.isnan(r.answer_relevancy)]
+        valid_prec = [r.context_precision for r in self.results if not math.isnan(r.context_precision)]
+        valid_recall = [r.context_recall for r in self.results if not math.isnan(r.context_recall)]
+
+        # Calculate means safely (defaults to 0.0 if the filtered list is empty)
+        self.mean_faithfulness = round(sum(valid_faith) / len(valid_faith) if valid_faith else 0.0, 4)
+        self.mean_answer_relevancy = round(sum(valid_rel) / len(valid_rel) if valid_rel else 0.0, 4)
+        self.mean_context_precision = round(sum(valid_prec) / len(valid_prec) if valid_prec else 0.0, 4)
+        self.mean_context_recall = round(sum(valid_recall) / len(valid_recall) if valid_recall else 0.0, 4)
+        
         self.n_retried = sum(1 for r in self.results if r.retry_count > 0)
-        self.n_total   = n
+        self.n_total = len(self.results)
 
 class RAGASEvaluator:
 
@@ -117,26 +126,34 @@ class RAGASEvaluator:
           Phase B — batch score with RAGAS (also slow, LLM-as-judge)
         """
        
-        logger.info(f"Running pipeline on {len(test_cases)} test cases...")
-
-        # Phase A: pipeline inference
+        # Phase A: Parallel pipeline inference
         eval_results: List[EvalResult] = []
-        for i, tc in enumerate(test_cases, 1):
-            logger.info(f"Pipeline inference {i}/{len(test_cases)}: {tc.question[:60]}...")
-            try:
-                result = self._run_pipeline(tc)
-                eval_results.append(result)
-                
-                # IMPORTANT: If you are using Groq, you MUST pause between questions 
-                # otherwise you will instantly hit a "429 Rate Limit" error!
-                import time
-                time.sleep(3) 
+        
+        # Adjust max_workers based on your provider:
+        # - Groq Free Tier: 2 or 3 (avoid 429s)
+        # - Local Ollama (CPU): 1 or 2
+        # - Local Ollama (GPU): 4 to 8
+        MAX_WORKERS = 3
 
-            except Exception as e:
-                # WE STOP SILENTLY IGNORING ERRORS HERE
-                logger.error(f"❌ PIPELINE CRASHED ON TEST CASE {i}!")
-                logger.error(f"The exact error is: {str(e)}")
-                raise RuntimeError(f"Evaluation aborted. Fix the error above: {str(e)}")
+        logger.info(f"🚀 Starting parallel inference with {MAX_WORKERS} workers...")
+
+        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            # Map test cases to the worker function
+            future_to_case = {executor.submit(self._run_pipeline, tc): tc for tc in test_cases}
+            
+            for i, future in enumerate(as_completed(future_to_case), 1):
+                tc = future_to_case[future]
+                try:
+                    result = future.result()
+                    eval_results.append(result)
+                    logger.info(f"✅ [{i}/{len(test_cases)}] Finished: {tc.question[:50]}...")
+
+                except Exception as e:
+                    logger.error(f"❌ PIPELINE CRASHED ON: {tc.question[:50]}")
+                    logger.error(f"Error: {str(e)}")
+                    # Shut down the executor and abort
+                    executor.shutdown(wait=False, cancel_futures=True)
+                    raise RuntimeError(f"Evaluation aborted due to pipeline failure: {e}")
 
         logger.info(f"Pipeline complete. Scoring {len(eval_results)} results with RAGAS...")
 
@@ -161,7 +178,7 @@ class RAGASEvaluator:
             embeddings=self._ragas_embeddings,
             raise_exceptions=False,   # Log failures, don't abort the whole eval
             run_config=RunConfig(
-                max_workers=1,       # Run one at a time to prevent CPU overload
+                max_workers=4,       # Run one at a time to prevent CPU overload
                 timeout=None,         
             )
         )

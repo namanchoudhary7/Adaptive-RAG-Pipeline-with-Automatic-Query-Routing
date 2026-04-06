@@ -5,8 +5,9 @@ from datetime import datetime
 from pathlib import Path
 import math
 from evaluation.evaluator import EvalSummary
+from backend.config import settings
 
-REPORT_PATH = Path("evaluation/EVAL_REPORT.md")
+REPORT_PATH = Path("evaluation/EVAL_REPORT_3.md")
 
 
 def _score_bar(score: float, width: int = 20) -> str:
@@ -16,7 +17,6 @@ def _score_bar(score: float, width: int = 20) -> str:
         
     filled = round(score * width)
     return "█" * filled + "░" * (width - filled)
-
 
 def _grade(score: float) -> str:
     # Check if the score is NaN or None
@@ -35,8 +35,8 @@ def generate_report(summary: EvalSummary, path: Path = REPORT_PATH) -> str:
         "",
         f"> Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}  ",
         f"> Test cases: {summary.n_total}  ",
-        f"> Model: Ollama / llama3.2:1b  ",
-        f"> Embeddings: sentence-transformers/all-MiniLM-L6-v2",
+        f"> Model: Ollama / {settings.ollama_model}  ",
+        f"> Embeddings: {settings.embedding_model}",
         "",
         "---",
         "",

@@ -88,7 +88,7 @@ if query and api_ready:
             resp = httpx.post(
                 url=f"{API_BASE}/query",
                 json={"query": query},
-                timeout=500,
+                timeout=None,
             )
             resp.raise_for_status()
             data = resp.json()
