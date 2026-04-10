@@ -37,20 +37,16 @@ logger = logging.getLogger(__name__)
 # Structured output makes parsing reliable — we look for a single word.
 RELEVANCE_GRADE_PROMPT = ChatPromptTemplate.from_messages([
     ("system",
-     """You are an extremely strict, uncompromising relevance grader for a Retrieval-Augmented Generation (RAG) pipeline.
-     Your ONLY responsibility is to determine if the provided context contains the exact, explicit information required to fully answer the user's question.
+     """You are a strict but fair relevance grader for a Retrieval-Augmented Generation (RAG) pipeline.
+     Your job is to determine if the provided context contains the actual facts, steps, or code needed to answer the user's question.
 
      CRITICAL RULES:
-     1. NO PARTIAL CREDIT: If the context only provides partial information or hints at the answer, it is INSUFFICIENT.
-     2. NO OUTSIDE KNOWLEDGE: If you have to guess, infer, or rely on your own internal knowledge to piece together the answer, it is INSUFFICIENT.
-     3. BE RUTHLESS: Do not try to be helpful. If the explicit answer is missing from the text, you must reject it.
+     1. DEMAND FACTS, FORGIVE PHRASING: The context MUST contain the actual information required to answer the question. However, you must recognize synonyms, paraphrasing, and technical equivalents. Do not reject valid information just because it doesn't use the exact wording of the question.
+     2. NO GUESSWORK: If the context is missing the core answer and you would have to guess or use outside knowledge, it is INSUFFICIENT.
+     3. TOPICAL MATCHES ARE NOT ENOUGH: If the context only talks about the general topic but doesn't answer the specific question asked, it is INSUFFICIENT.
 
      OUTPUT FORMAT:
-     You must respond with EXACTLY one word. Choose only from:
-     SUFFICIENT
-     INSUFFICIENT
-     
-     Do not add punctuation, explanations, or introductory text."""
+     You must respond with EXACTLY one word: SUFFICIENT or INSUFFICIENT. Do not add punctuation."""
     ),
     ("human",
      """Question: {question}
@@ -116,7 +112,7 @@ def _format_context(result: RetrievedResult)->str:
 def _extract_sources(result:RetrievedResult)->list[SourceDocument]:
     return [
         SourceDocument(
-            content=chunk.document.page_content[:200] + "...",
+            content=chunk.document.page_content,
             source=chunk.document.metadata.get("source", "unknown"),
             relevance_score=chunk.score,
         )

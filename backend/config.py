@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     embedding_model: str = "BAAI/bge-small-en-v1.5"
     embedding_device: str = "cpu"
 
+    reranker_model: str = "BAAI/bge-reranker-base"
+
     # ChromaDB — persisted to disk so you only ingest once
     chroma_persist_dir: str = "./chroma_db"
     chroma_collection_name: str = "techdocs"
@@ -24,6 +26,7 @@ class Settings(BaseSettings):
     docs_dir: str = "./data/docs"
 
     # Retrieval behaviour
+    fetch_k: int = 25
     top_k: int = 10
     max_retry_loops: int = 2
 

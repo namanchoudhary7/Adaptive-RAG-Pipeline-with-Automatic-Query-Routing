@@ -19,13 +19,15 @@ Reciprocal Rank Fusion formula:
 """
 
 from concurrent.futures import ThreadPoolExecutor
-import logging
+import logging, math
 from dataclasses import dataclass, field
 from typing import List, Dict, Tuple
 from langchain_classic.schema import Document
 from langchain_chroma import Chroma
 from rank_bm25 import BM25Okapi
 from backend.config import settings
+from sentence_transformers import CrossEncoder
+from functools import lru_cache
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +45,15 @@ class RetrievedResult:
     chunks: List[RetrievedChunk]
     strategy_used: str
     query_used: str
+
+@lru_cache
+def _load_reranker():
+    """
+    Loads the CrossEncoder once and caches it in RAM. 
+    Subsequent calls to this function are instant.
+    """
+    logger.info("Loading CrossEncoder reranker (this takes a moment)...")
+    return CrossEncoder(settings.reranker_model, device=settings.embedding_device)
 
 class BM25Index:
     """
@@ -147,6 +158,7 @@ class AdaptiveRetriever:
     def __init__(self, vector_store: Chroma)->None:
         self._vector_store = vector_store
         self._bm25 = BM25Index.from_chroma(vector_store)
+        self._reranker = _load_reranker()
         logger.info("Adaptive retriever initialized (semantic + BM25 + hybrid)")
 
     def semantic_search(self, query:str, top_k:int = None)->List[RetrievedChunk]:
@@ -232,6 +244,8 @@ class AdaptiveRetriever:
         """
         Main entry point. Called by the pipeline with the router's chosen strategy.
         """
+        final_k = top_k or settings.top_k
+        fetch_k = settings.fetch_k
 
         dispatch = {
             "semantic" : self.semantic_search,
@@ -243,7 +257,32 @@ class AdaptiveRetriever:
             logger.info(f"Unknown strategy {strategy}, falling back to hybrid")
             strategy = "hybrid"
 
-        chunks = dispatch[strategy](query=query, top_k=top_k)
+        # 1. STAGE ONE: Fast Retrieval (Wide Net)
+        chunks = dispatch[strategy](query=query, top_k=fetch_k)
+
+        # 2. STAGE TWO: Cross-Encoder Reranking
+        if chunks:
+            # Prepare the inputs for the CrossEncoder: [[query, text1], [query, text2], ...]
+            pairs = [[query, chunk.document.page_content] for chunk in chunks]
+            
+            # The reranker outputs raw logits (can be negative or positive)
+            logits = self._reranker.predict(pairs)
+            
+            # Update the chunks with the new mathematically precise scores
+            for chunk, logit in zip(chunks, logits):
+                # We use a sigmoid function to convert the raw logit into a clean 0.0 to 1.0 probability score
+                chunk.score = 1 / (1 + math.exp(-logit))
+                chunk.strategy = f"{strategy} + reranked"
+            
+            # Re-sort the list so the most precise documents are at the very top
+            chunks.sort(key=lambda x: x.score, reverse=True)
+            
+            # Chop off the bottom documents, leaving only the final top_k
+            chunks = chunks[:final_k]
+            
+            # Fix the rank integer attributes so they are 1 to 10 again
+            for i, chunk in enumerate(chunks, start=1):
+                chunk.rank = i
 
         logger.info(
             f'Retrieved {len(chunks)} chunks | strategy = {strategy} | '

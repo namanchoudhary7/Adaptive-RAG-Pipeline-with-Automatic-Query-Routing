@@ -7,7 +7,7 @@ import math
 from evaluation.evaluator import EvalSummary
 from backend.config import settings
 
-REPORT_PATH = Path("evaluation/EVAL_REPORT_3.md")
+REPORT_PATH = Path("evaluation/EVAL_REPORT_4.md")
 
 
 def _score_bar(score: float, width: int = 20) -> str:
